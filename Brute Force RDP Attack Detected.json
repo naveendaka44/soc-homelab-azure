@@ -1,0 +1,59 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "workspace": {
+            "type": "String"
+        }
+    },
+    "resources": [
+        {
+            "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/cc6993d9-154c-4d39-9b2e-c75bf0315ec2')]",
+            "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/cc6993d9-154c-4d39-9b2e-c75bf0315ec2')]",
+            "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+            "kind": "Scheduled",
+            "apiVersion": "2023-12-01-preview",
+            "properties": {
+                "displayName": "Brute Force RDP Attack Detected",
+                "description": "Detects multiple failed RDP login attempts from a single IP address",
+                "severity": "Medium",
+                "enabled": true,
+                "query": "SecurityEvent\r\n| where TimeGenerated >= ago(1d)\r\n| where EventID in (4625, 4624)  // Failed and successful\r\n| summarize \r\n    FailedLogins = countif(EventID == 4625),\r\n    SuccessfulLogins = countif(EventID == 4624),\r\n    Accounts = make_set(TargetUserName),\r\n    FirstSeen = min(TimeGenerated),\r\n    LastSeen = max(TimeGenerated)\r\n    by IpAddress, Computer\r\n| where FailedLogins >= 5 and SuccessfulLogins >= 1  // Breach indicator!\r\n| extend Severity = \"medium\"",
+                "queryFrequency": "PT5M",
+                "queryPeriod": "PT5H",
+                "triggerOperator": "GreaterThan",
+                "triggerThreshold": 0,
+                "suppressionDuration": "PT5H",
+                "suppressionEnabled": false,
+                "startTimeUtc": null,
+                "tactics": [
+                    "InitialAccess",
+                    "CredentialAccess"
+                ],
+                "techniques": [],
+                "subTechniques": [],
+                "alertRuleTemplateName": null,
+                "incidentConfiguration": {
+                    "createIncident": true,
+                    "groupingConfiguration": {
+                        "enabled": false,
+                        "reopenClosedIncident": false,
+                        "lookbackDuration": "PT5H",
+                        "matchingMethod": "AllEntities",
+                        "groupByEntities": [],
+                        "groupByAlertDetails": [],
+                        "groupByCustomDetails": []
+                    }
+                },
+                "eventGroupingSettings": {
+                    "aggregationKind": "SingleAlert"
+                },
+                "alertDetailsOverride": null,
+                "customDetails": null,
+                "entityMappings": null,
+                "sentinelEntitiesMappings": null,
+                "templateVersion": null
+            }
+        }
+    ]
+}
